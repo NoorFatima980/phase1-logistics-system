@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 1 - Logistics System</title>
+
+<style>
+body{font-family:Arial;margin:0;background:#f4f6f9}
+header{background:#1e3a8a;color:#fff;padding:15px;text-align:center}
+.container{padding:20px;max-width:1100px;margin:auto}
+select,input,button{padding:10px;margin:5px 0;width:100%}
+button{background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer}
+button:hover{background:#1d4ed8}
+.output{background:white;padding:15px;margin-top:20px;border-radius:6px;box-shadow:0 0 5px rgba(0,0,0,0.1);white-space:pre-wrap}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>Phase 1 - Intelligent Logistics System</h2>
+<p>CSV Upload + Merge | Quick | Binary | Min/Max</p>
+</header>
+
+<div class="container">
+
+<h3>Upload CSV File</h3>
+<input type="file" id="csvFile" accept=".csv" />
+
+<h3>Select Numeric Column</h3>
+<select id="columnSelect"></select>
+
+<h3>Select Algorithm</h3>
+<select id="algoSelect">
+<option value="merge">Merge Sort</option>
+<option value="quick">Quick Sort</option>
+<option value="binary">Binary Search</option>
+<option value="minmax">Min & Max</option>
+</select>
+
+<input type="number" id="searchValue" placeholder="Enter value (for Binary Search only)"/>
+
+<button onclick="runAlgorithm()">Run Algorithm</button>
+
+<div class="output" id="output"></div>
+
+</div>
+
+<script>
+let csvData = [];
+let headers = [];
+
+document.getElementById('csvFile').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event){
+        const text = event.target.result;
+        parseCSV(text);
+    };
+    reader.readAsText(file);
+});
+
+function parseCSV(text){
+    const rows = text.split('\n').map(r=>r.trim()).filter(r=>r);
+    headers = rows[0].split(',');
+    csvData = rows.slice(1).map(r=>r.split(','));
+
+    const select = document.getElementById('columnSelect');
+    select.innerHTML = '';
+
+    headers.forEach((h,i)=>{
+        let option = document.createElement('option');
+        option.value = i;
+        option.text = h;
+        select.appendChild(option);
+    });
+}
+
+function getSelectedColumnData(){
+    const colIndex = document.getElementById('columnSelect').value;
+    return csvData.map(r=>parseFloat(r[colIndex])).filter(v=>!isNaN(v));
+}
+
+/* Algorithms */
+
+function mergeSort(arr){
+    if(arr.length<=1) return arr;
+    const mid=Math.floor(arr.length/2);
+    return merge(mergeSort(arr.slice(0,mid)), mergeSort(arr.slice(mid)));
+}
+function merge(l,r){
+    let res=[];
+    while(l.length && r.length)
+        res.push(l[0]<r[0]?l.shift():r.shift());
+    return [...res,...l,...r];
+}
+
+function quickSort(arr){
+    if(arr.length<=1) return arr;
+    const pivot=arr[arr.length-1];
+    const left=[], right=[];
+    for(let i=0;i<arr.length-1;i++)
+        arr[i]<pivot?left.push(arr[i]):right.push(arr[i]);
+    return [...quickSort(left),pivot,...quickSort(right)];
+}
+
+function binarySearch(arr,target){
+    let l=0,r=arr.length-1;
+    while(l<=r){
+        let mid=Math.floor((l+r)/2);
+        if(arr[mid]==target) return mid;
+        arr[mid]<target?l=mid+1:r=mid-1;
+    }
+    return -1;
+}
+
+function findMinMax(arr,l,r){
+    if(l==r) return {min:arr[l],max:arr[l]};
+    if(r==l+1)
+        return arr[l]<arr[r]?{min:arr[l],max:arr[r]}:{min:arr[r],max:arr[l]};
+    let mid=Math.floor((l+r)/2);
+    let left=findMinMax(arr,l,mid);
+    let right=findMinMax(arr,mid+1,r);
+    return {min:Math.min(left.min,right.min),max:Math.max(left.max,right.max)};
+}
+
+function runAlgorithm(){
+    let data = getSelectedColumnData();
+    if(data.length===0){
+        alert("No numeric data found in selected column.");
+        return;
+    }
+
+    const algo=document.getElementById('algoSelect').value;
+    const output=document.getElementById('output');
+
+    if(algo==="merge"){
+        let sorted=mergeSort([...data]);
+        output.innerText="Merge Sort Result:\n"+sorted.join(", ");
+    }
+
+    if(algo==="quick"){
+        let sorted=quickSort([...data]);
+        output.innerText="Quick Sort Result:\n"+sorted.join(", ");
+    }
+
+    if(algo==="binary"){
+        let sorted=mergeSort([...data]);
+        let val=parseFloat(document.getElementById('searchValue').value);
+        if(isNaN(val)){
+            alert("Enter value to search");
+            return;
+        }
+        let index=binarySearch(sorted,val);
+        output.innerText="Sorted Data:\n"+sorted.join(", ")+"\n\nResult: "+
+            (index!=-1?"Found at index "+index:"Not Found");
+    }
+
+    if(algo==="minmax"){
+        let result=findMinMax(data,0,data.length-1);
+        output.innerText="Minimum: "+result.min+"\nMaximum: "+result.max;
+    }
+}
+</script>
+
+</body>
+</html>
